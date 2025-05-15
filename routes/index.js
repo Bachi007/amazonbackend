@@ -4,6 +4,7 @@ const products = require('../models/products');
 const Cart = require('../models/cart');
 const Wishlist = require('../models/wishlist');
 const Order = require('../models/order');
+const Razorpay = require('razorpay');
 
 // Hello route
 router.get("/hello", (req, res) => {
@@ -12,26 +13,45 @@ router.get("/hello", (req, res) => {
 
 
 const razorpay = new Razorpay({
-    key_id: 'rzp_test_fRjXetyd3ZIJww',
-    key_secret: 'YzY5vnjmH3OUeJJztXlQgXII',
+    key_id: 'rzp_test_39sPA5rEf9MQOf',
+    key_secret: 'jYjnIh1q8DBmoCnTRIMHAL5m',
 });
 
-router.post("/createOrder", async (req, res) => {
-    const { amount } = req.body; // amount in rupees
 
-    try {
-        const options = {
-            amount: amount * 100, // amount in paise
-            currency: "INR",
-            receipt: "receipt#1"
-        };
-        const order = await razorpay.orders.create(options);
-        res.status(200).json(order);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error creating order");
+
+router.post("/create-order", async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount) {
+      return res.status(400).json({ error: "Amount is required" });
     }
+
+    const options = {
+      amount: amount * 100, // amount in paise
+      currency: "INR",
+      receipt: `receipt_order_${Date.now()}`
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.status(200).json({
+      id: order.id,
+      currency: order.currency,
+      amount: order.amount,
+      status: order.status
+    });
+
+  } catch (error) {
+    console.error("Razorpay create-order error:", error); // 🔥 Print the full error object
+    res.status(500).json({
+      error: "Order creation failed",
+      message: error.description || error.message || JSON.stringify(error)
+    });
+  }
 });
+
+
 
 // Get all products
 router.get("/products", (req, res) => {
